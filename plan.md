@@ -2,22 +2,22 @@
 
 ## 1. Project Initialization & Setup
 
-- [ ] **Initialize Project**
+- [x] **Initialize Project**
   - `npm init -y`
   - Install dependencies: `express`, `cors`, `dotenv`, `helmet`, `morgan`
   - Install dev dependencies: `typescript`, `ts-node`, `nodemon`, `@types/node`, `@types/express`, `@types/cors`, `eslint`, `prettier`
-- [ ] **TypeScript Configuration**
+- [x] **TypeScript Configuration**
   - Create `tsconfig.json`
-- [ ] **Express Setup**
+- [x] **Express Setup**
   - Create `src/app.ts` (App Main Entry)
   - Create `src/server.ts` (Server Listen)
   - Configure Middleware (CORS, JSON parser, Error Handling)
 
 ## 2. Database Design (Prisma & PostgreSQL)
 
-- [ ] **Initialize Prisma**
+- [x] **Initialize Prisma**
   - `npx prisma init`
-- [ ] **Define Schema (`prisma/schema.prisma`)**
+- [x] **Define Schema (`prisma/schema.prisma`)**
   - **Enums**: `Role` (CUSTOMER, SELLER, ADMIN), `OrderStatus` (PENDING, PAID, SHIPPED, DELIVERED, CANCELLED)
   - **Models**:
     - `User`: id, name, email, password, role, address, phone, createdAt, updatedAt
@@ -26,12 +26,12 @@
     - `Order`: id, userId, totalAmount, status, shippingAddress, createdAt, updatedAt
     - `OrderItem`: id, orderId, medicineId, quantity, price
     - `Review`: id, rating, comment, userId, medicineId
-- [ ] **Migrate Database**
+- [x] **Migrate Database**
   - `npx prisma migrate dev --name init`
 
 ## 3. Authentication Module
 
-- [ ] **Install Auth Dependencies**
+- [] **Install Auth Dependencies**
   - `bcryptjs` for hashing
   - `jsonwebtoken` for tokens
 - [ ] **Implement Auth Controller**
