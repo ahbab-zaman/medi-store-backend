@@ -126,9 +126,44 @@ const refreshToken = async (token: string) => {
     config.jwt.expires_in as string,
   );
 
+  // Rotate refresh token on each successful refresh, so that
+  // access tokens can be regenerated without logging out while
+  // still keeping a single active session.
+  const newRefreshToken = createToken(
+    jwtPayload,
+    config.jwt.refresh_secret as string,
+    config.jwt.refresh_expires_in as string,
+  );
+
+  await prisma.user.update({
+    where: {
+      email: userData.email,
+    },
+    data: {
+      refreshToken: newRefreshToken,
+    },
+  });
+
   return {
     accessToken,
+    refreshToken: newRefreshToken,
   };
+};
+
+const getMe = async (email: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!userData) {
+    throw new AppError(404, "User does not exist!");
+  }
+
+  const { password, ...userWithoutPassword } = userData;
+
+  return userWithoutPassword;
 };
 
 const logoutUser = async (email: string) => {
@@ -151,4 +186,5 @@ export const AuthService = {
   loginUser,
   refreshToken,
   logoutUser,
+  getMe,
 };

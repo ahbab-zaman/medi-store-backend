@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AuthService } from "./auth.service";
-import config from "../../config";
+import AppError from "../../errors/AppError";
 
 const register = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req.body);
@@ -16,6 +16,36 @@ const register = catchAsync(async (req: Request, res: Response) => {
 });
 
 const login = catchAsync(async (req: Request, res: Response) => {
+  // If a valid refresh token cookie already exists, treat the user as
+  // "already logged in" and block repeated logins until they logout.
+  const existingRefreshToken = req.cookies?.refreshToken;
+
+  if (existingRefreshToken) {
+    try {
+      // This will throw if the refresh token is invalid/expired/mismatched.
+      await AuthService.refreshToken(existingRefreshToken);
+
+      // If we reached here, the refresh token is valid and user is logged in.
+      throw new AppError(
+        400,
+        "You are already logged in. Please logout first to login again.",
+      );
+    } catch (error) {
+      // If the refresh token is invalid or user not found, allow normal login.
+      // Re-throw any non-AuthError or unexpected server-side issues.
+      if (error instanceof AppError && [401, 404].includes(error.statusCode)) {
+        // ignore and continue to login
+      } else if (error instanceof AppError && error.statusCode === 400) {
+        // our own "already logged in" error, rethrow so it bubbles to handler
+        throw error;
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw error;
+      }
+    }
+  }
+
   const result = await AuthService.loginUser(req.body);
   const { refreshToken, accessToken } = result;
 
@@ -37,12 +67,23 @@ const login = catchAsync(async (req: Request, res: Response) => {
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   const result = await AuthService.refreshToken(refreshToken);
+  const { accessToken, refreshToken: newRefreshToken } = result;
+
+  // If we rotated the refresh token, update the cookie transparently.
+  if (newRefreshToken) {
+    res.cookie("refreshToken", newRefreshToken, {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+    });
+  }
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Access token retrieved successfully!",
-    data: result,
+    data: {
+      accessToken,
+    },
   });
 });
 
@@ -63,19 +104,15 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMe = catchAsync(async (req: Request, res: Response) => {
-  // Just return the decoded user info or fetch full details.
-  // "Get current user" usually implies fetching DB data.
-  // For now I'll use the decoded data or keys.
-  // Let's fetch from DB to be clean if needed, but req.user has role/email.
-  // I will just return req.user for lightweight, or maybe the service calls DB.
-  // Let's keep it simple: return request user.
-  // Wait, the endpoint is GET /api/auth/me.
+  // Fetch full user profile from DB using email from decoded token
+  const userEmail = req.user.email;
+  const user = await AuthService.getMe(userEmail);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "User profile retrieved successfully",
-    data: req.user,
+    data: user,
   });
 });
 
