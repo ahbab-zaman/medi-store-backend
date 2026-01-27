@@ -29,6 +29,7 @@ model User {
   role          Role       @default(CUSTOMER)
   contactNumber String?
   address       String?
+  isBanned      Boolean    @default(false)
   
   orders        Order[]
   reviews       Review[]
@@ -44,6 +45,7 @@ model User {
 model Category {
   id        String     @id @default(uuid())
   name      String     @unique
+  imageUrl  String?
   medicines Medicine[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -59,6 +61,7 @@ model Medicine {
   stock        Int
   manufacturer String
   expiryDate   DateTime?
+  imageUrl     String?
   
   categoryId   String
   category     Category    @relation(fields: [categoryId], references: [id])

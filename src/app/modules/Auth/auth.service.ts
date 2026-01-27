@@ -59,6 +59,7 @@ const loginUser = async (payload: TLoginUser) => {
   // Removed strict single-session check to allow re-login if user clears cookies
 
   const jwtPayload = {
+    id: userData.id,
     email: userData.email,
     role: userData.role,
   };
@@ -116,6 +117,7 @@ const refreshToken = async (token: string) => {
   }
 
   const jwtPayload = {
+    id: userData.id,
     email: userData.email,
     role: userData.role,
   };
@@ -150,11 +152,17 @@ const refreshToken = async (token: string) => {
   };
 };
 
-const getMe = async (email: string) => {
+const getMe = async (payload: { id?: string; email?: string }) => {
+  if (!payload.id && !payload.email) {
+    throw new AppError(401, "You are not authorized!");
+  }
+
   const userData = await prisma.user.findUnique({
-    where: {
-      email,
-    },
+    where: payload.id
+      ? { id: payload.id }
+      : {
+          email: payload.email as string,
+        },
   });
 
   if (!userData) {

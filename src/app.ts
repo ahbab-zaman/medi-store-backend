@@ -5,6 +5,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import router from "./app/routes";
 import globalErrorHandler from "./app/middlewares/globalErrorHandler";
+import path from "path";
 
 const app: Application = express();
 
@@ -14,6 +15,12 @@ app.use(cookieParser());
 app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
+
+// Static files for uploaded images
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads")),
+);
 
 // Application Routes
 app.use("/api", router);

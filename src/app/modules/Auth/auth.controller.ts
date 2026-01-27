@@ -104,9 +104,9 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMe = catchAsync(async (req: Request, res: Response) => {
-  // Fetch full user profile from DB using email from decoded token
-  const userEmail = req.user.email;
-  const user = await AuthService.getMe(userEmail);
+  // Fetch full user profile from DB using id or email from decoded token
+  const { id, email } = req.user as { id?: string; email?: string };
+  const user = await AuthService.getMe({ id, email });
 
   sendResponse(res, {
     statusCode: 200,
