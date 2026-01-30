@@ -3,8 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import router from "./app/routes";
-import globalErrorHandler from "./app/middlewares/globalErrorHandler";
+import router from "./routes";
+import globalErrorHandler from "./middlewares/globalErrorHandler";
 import path from "path";
 
 const app: Application = express();

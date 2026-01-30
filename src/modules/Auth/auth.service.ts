@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "../../../lib/prisma";
-import config from "../../config";
+import { prisma } from "../../lib/prisma";
+import config from "../../config/index";
 import AppError from "../../errors/AppError";
 import { TLoginUser } from "./auth.interface";
 import { createToken, verifyToken } from "./auth.utils";
-import { User } from "../../../../generated/prisma/client";
+import { User } from "../../../generated/prisma/client";
 
 const registerUser = async (payload: User) => {
   const existingUser = await prisma.user.findUnique({
