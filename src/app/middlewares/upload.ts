@@ -2,67 +2,50 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
-import { Request } from "express";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 
+// ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.memoryStorage();
+/* -------------------------------------------------------------------------- */
+/*                              MULTER CONFIG                                 */
+/* -------------------------------------------------------------------------- */
 
-const fileFilter = (
-  req: Request,
-  file: Express.Multer.File,
-  cb: multer.FileFilterCallback,
-) => {
-  const allowedMimeTypes = [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/webp",
-    "image/avif",
-  ];
-
-  if (!allowedMimeTypes.includes(file.mimetype)) {
-    return cb(new Error("Only image files are allowed"));
-  }
-
-  cb(null, true);
-};
-
-export const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
   },
 });
 
+export const upload = multer({ storage });
+
+/* -------------------------------------------------------------------------- */
+/*                         IMAGE PROCESSING HELPER                             */
+/* -------------------------------------------------------------------------- */
+
 export const processAndSaveImage = async (
   file: Express.Multer.File,
-  subfolder: "medicines" | "categories",
-) => {
-  const folderPath = path.join(uploadDir, subfolder);
+  folder: "categories" | "medicines",
+): Promise<string> => {
+  const outputDir = path.join(uploadDir, folder);
 
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const fileName = `${Date.now()}-${file.originalname.split(".")[0]}.webp`;
-  const filePath = path.join(folderPath, fileName);
+  const outputPath = path.join(outputDir, file.filename);
 
-  await sharp(file.buffer)
-    .rotate()
-    .resize(800, 800, {
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 80 })
-    .toFile(filePath);
+  await sharp(file.path).resize(500, 500, { fit: "cover" }).toFile(outputPath);
 
-  // Return relative path that can be served statically
-  return `/uploads/${subfolder}/${fileName}`;
+  // delete original uploaded file
+  fs.unlinkSync(file.path);
+
+  return `/uploads/${folder}/${file.filename}`;
 };
-
