@@ -12,19 +12,19 @@ router.get("/:id", MedicineController.getMedicineById);
 // Seller routes - manage own medicines and stock
 router.post(
   "/seller",
-  auth("SELLER"),
+  auth("SELLER", "ADMIN"),
   upload.single("image"),
   MedicineController.createMedicine,
 );
 router.put(
   "/seller/:id",
-  auth("SELLER"),
+  auth("SELLER", "ADMIN"),
   upload.single("image"),
   MedicineController.updateMedicine,
 );
 router.delete(
   "/seller/:id",
-  auth("SELLER"),
+  auth("SELLER", "ADMIN"),
   MedicineController.deleteMedicine,
 );
 
@@ -36,4 +36,3 @@ router.get(
 );
 
 export const MedicineRoutes = router;
-
