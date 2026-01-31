@@ -28,10 +28,11 @@ export interface MedicineQuery {
   categoryId?: string;
   minPrice?: string;
   maxPrice?: string;
+  sellerId?: string;
 }
 
 const getAllMedicines = async (query: MedicineQuery) => {
-  const { search, categoryId, minPrice, maxPrice } = query;
+  const { search, categoryId, minPrice, maxPrice, sellerId } = query;
 
   const filters: any = {};
 
@@ -45,6 +46,10 @@ const getAllMedicines = async (query: MedicineQuery) => {
 
   if (categoryId) {
     filters.categoryId = categoryId;
+  }
+
+  if (sellerId) {
+    filters.sellerId = sellerId;
   }
 
   if (minPrice || maxPrice) {
@@ -98,7 +103,10 @@ const getMedicineById = async (id: string) => {
   return medicine;
 };
 
-const createMedicine = async (sellerEmail: string, payload: CreateMedicineInput) => {
+const createMedicine = async (
+  sellerEmail: string,
+  payload: CreateMedicineInput,
+) => {
   const seller = await prisma.user.findUnique({
     where: { email: sellerEmail },
   });
@@ -212,4 +220,3 @@ export const MedicineService = {
   deleteMedicine,
   getAllMedicinesForAdmin,
 };
-

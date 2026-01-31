@@ -3,12 +3,12 @@ import AppError from "../../errors/AppError";
 
 export interface CreateCategoryInput {
   name: string;
-  imageUrl?: string;
+  description?: string;
 }
 
 export interface UpdateCategoryInput {
   name?: string;
-  imageUrl?: string;
+  description?: string;
 }
 
 const getAllCategories = async () => {
@@ -31,7 +31,7 @@ const createCategory = async (payload: CreateCategoryInput) => {
   return prisma.category.create({
     data: {
       name: payload.name,
-      imageUrl: payload.imageUrl,
+      description: payload.description,
     },
   });
 };
@@ -49,7 +49,7 @@ const updateCategory = async (id: string, payload: UpdateCategoryInput) => {
     where: { id },
     data: {
       name: payload.name ?? existing.name,
-      imageUrl: payload.imageUrl ?? existing.imageUrl,
+      description: payload.description ?? existing.description,
     },
   });
 };
@@ -78,4 +78,3 @@ export const CategoryService = {
   updateCategory,
   deleteCategory,
 };
-

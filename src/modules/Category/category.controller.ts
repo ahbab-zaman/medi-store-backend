@@ -16,18 +16,7 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-  let imageUrl: string | undefined;
-
-  if (req.file) {
-    imageUrl = await processAndSaveImage(req.file, "categories");
-  }
-
-  const payload = {
-    ...req.body,
-    imageUrl,
-  };
-
-  const result = await CategoryService.createCategory(payload);
+  const result = await CategoryService.createCategory(req.body);
 
   sendResponse(res, {
     statusCode: 201,
@@ -39,19 +28,7 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-
-  let imageUrl: string | undefined;
-
-  if (req.file) {
-    imageUrl = await processAndSaveImage(req.file, "categories");
-  }
-
-  const payload = {
-    ...req.body,
-    ...(imageUrl ? { imageUrl } : {}),
-  };
-
-  const result = await CategoryService.updateCategory(id, payload);
+  const result = await CategoryService.updateCategory(id, req.body);
 
   sendResponse(res, {
     statusCode: 200,

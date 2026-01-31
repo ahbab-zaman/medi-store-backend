@@ -9,19 +9,8 @@ const router = express.Router();
 router.get("/", CategoryController.getAllCategories);
 
 // Admin only
-router.post(
-  "/",
-  auth("ADMIN"),
-  upload.single("image"),
-  CategoryController.createCategory,
-);
-router.put(
-  "/:id",
-  auth("ADMIN"),
-  upload.single("image"),
-  CategoryController.updateCategory,
-);
+router.post("/", auth("ADMIN"), CategoryController.createCategory);
+router.put("/:id", auth("ADMIN"), CategoryController.updateCategory);
 router.delete("/:id", auth("ADMIN"), CategoryController.deleteCategory);
 
 export const CategoryRoutes = router;
-
