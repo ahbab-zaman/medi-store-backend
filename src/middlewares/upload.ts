@@ -1,17 +1,40 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import sharp from "sharp";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 
-// ensure upload directory exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Ensure upload directories exist
+const medicinesDir = path.join(uploadDir, "medicines");
+const categoriesDir = path.join(uploadDir, "categories");
+[uploadDir, medicinesDir, categoriesDir].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 /* -------------------------------------------------------------------------- */
-/*                              MULTER CONFIG                                 */
+/*                    MULTER – medicines (direct save, easy to see)           */
+/* -------------------------------------------------------------------------- */
+
+const medicineStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, medicinesDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".jpg";
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+/** Use this for medicine create/update – saves directly to uploads/medicines/ */
+export const uploadMedicine = multer({
+  storage: medicineStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+/* -------------------------------------------------------------------------- */
+/*                    MULTER – categories (for existing flows)               */
 /* -------------------------------------------------------------------------- */
 
 const storage = multer.diskStorage({
@@ -25,27 +48,3 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
-
-/* -------------------------------------------------------------------------- */
-/*                         IMAGE PROCESSING HELPER                             */
-/* -------------------------------------------------------------------------- */
-
-export const processAndSaveImage = async (
-  file: Express.Multer.File,
-  folder: "categories" | "medicines",
-): Promise<string> => {
-  const outputDir = path.join(uploadDir, folder);
-
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  const outputPath = path.join(outputDir, file.filename);
-
-  await sharp(file.path).resize(500, 500, { fit: "cover" }).toFile(outputPath);
-
-  // delete original uploaded file
-  fs.unlinkSync(file.path);
-
-  return `/uploads/${folder}/${file.filename}`;
-};

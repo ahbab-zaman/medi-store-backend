@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { MedicineService } from "./medicine.service";
-import { processAndSaveImage } from "../../middlewares/upload";
 
 const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getAllMedicines(req.query);
@@ -30,11 +29,10 @@ const getMedicineById = catchAsync(async (req: Request, res: Response) => {
 const createMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
 
-  let imageUrl: string | undefined;
-
-  if (req.file) {
-    imageUrl = await processAndSaveImage(req.file, "medicines");
-  }
+  // Multer saves directly to uploads/medicines/ – URL path for frontend
+  const imageUrl = req.file
+    ? `/uploads/medicines/${req.file.filename}`
+    : undefined;
 
   const payload = {
     ...req.body,
@@ -55,11 +53,9 @@ const updateMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
   const { id } = req.params;
 
-  let imageUrl: string | undefined;
-
-  if (req.file) {
-    imageUrl = await processAndSaveImage(req.file, "medicines");
-  }
+  const imageUrl = req.file
+    ? `/uploads/medicines/${req.file.filename}`
+    : undefined;
 
   const payload = {
     ...req.body,

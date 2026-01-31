@@ -1,7 +1,7 @@
 import express from "express";
 import { MedicineController } from "./medicine.controller";
 import auth from "../../middlewares/auth";
-import { upload } from "../../middlewares/upload";
+import { uploadMedicine } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -9,17 +9,17 @@ const router = express.Router();
 router.get("/", MedicineController.getAllMedicines);
 router.get("/:id", MedicineController.getMedicineById);
 
-// Seller routes - manage own medicines and stock
+// Seller routes - manage own medicines and stock (multer saves to uploads/medicines/)
 router.post(
   "/seller",
   auth("SELLER", "ADMIN"),
-  upload.single("image"),
+  uploadMedicine.single("image"),
   MedicineController.createMedicine,
 );
 router.put(
   "/seller/:id",
   auth("SELLER", "ADMIN"),
-  upload.single("image"),
+  uploadMedicine.single("image"),
   MedicineController.updateMedicine,
 );
 router.delete(
