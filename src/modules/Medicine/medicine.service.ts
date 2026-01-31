@@ -115,11 +115,13 @@ const createMedicine = async (
     throw new AppError(404, "Seller not found");
   }
 
-  const { expiryDate, ...rest } = payload;
+  const { expiryDate, price, stock, ...rest } = payload;
 
   return prisma.medicine.create({
     data: {
       ...rest,
+      price: parseFloat(price as unknown as string),
+      stock: parseInt(stock as unknown as string),
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       sellerId: seller.id,
     },
@@ -152,12 +154,18 @@ const updateMedicine = async (
     throw new AppError(403, "You are not allowed to modify this medicine");
   }
 
-  const { expiryDate, ...rest } = payload;
+  const { expiryDate, price, stock, ...rest } = payload;
 
   return prisma.medicine.update({
     where: { id },
     data: {
       ...rest,
+      ...(price !== undefined && {
+        price: parseFloat(price as unknown as string),
+      }),
+      ...(stock !== undefined && {
+        stock: parseInt(stock as unknown as string),
+      }),
       expiryDate: expiryDate ? new Date(expiryDate) : medicine.expiryDate,
     },
   });
