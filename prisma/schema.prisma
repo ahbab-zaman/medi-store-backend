@@ -34,6 +34,7 @@ model User {
   orders        Order[]
   reviews       Review[]
   medicines     Medicine[] 
+  cart          Cart?
   
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -71,6 +72,7 @@ model Medicine {
   
   reviews      Review[]
   orderItems   OrderItem[]
+  cartItems    CartItem[]
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -120,4 +122,29 @@ model Review {
   updatedAt  DateTime @updatedAt
   
   @@map("reviews")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@map("carts")
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  cartId     String
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  quantity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([cartId, medicineId])
+  @@map("cart_items")
 }
