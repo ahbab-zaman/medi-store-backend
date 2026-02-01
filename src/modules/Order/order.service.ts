@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus } from "../../../generated/prisma/client";
 
 const createOrder = async (userId: string, payload: any) => {
   // Payload should contain items: { medicineId, quantity }[]
