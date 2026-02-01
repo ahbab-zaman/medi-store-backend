@@ -111,7 +111,7 @@ const refreshToken = async (token: string) => {
     throw new AppError(404, "User does not exist!");
   }
 
-  // Check if the refresh token matches the one in DB (Single Session Strictness)
+  // Check if the refresh token matches the one in DB
   if (userData.refreshToken !== token) {
     throw new AppError(401, "Invalid Refresh Token!");
   }
@@ -128,30 +128,16 @@ const refreshToken = async (token: string) => {
     config.jwt.expires_in as string,
   );
 
-  // Rotate refresh token on each successful refresh, so that
-  // access tokens can be regenerated without logging out while
-  // still keeping a single active session.
-  const newRefreshToken = createToken(
-    jwtPayload,
-    config.jwt.refresh_secret as string,
-    config.jwt.refresh_expires_in as string,
-  );
+  // ✅ FIX: Don't rotate refresh token on every access token refresh
+  // This prevents race conditions with multiple tabs/requests
+  // The refresh token should remain valid for its full lifetime
 
-  await prisma.user.update({
-    where: {
-      email: userData.email,
-    },
-    data: {
-      refreshToken: newRefreshToken,
-    },
-  });
-
+  // Simply return the same refresh token
   return {
     accessToken,
-    refreshToken: newRefreshToken,
+    refreshToken: token, // Return the same refresh token that was sent
   };
 };
-
 const getMe = async (payload: { id?: string; email?: string }) => {
   if (!payload.id && !payload.email) {
     throw new AppError(401, "You are not authorized!");

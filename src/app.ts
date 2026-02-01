@@ -8,6 +8,7 @@ import globalErrorHandler from "./middlewares/globalErrorHandler";
 import path from "path";
 
 const app: Application = express();
+
 app.use(
   cors({
     origin: [
@@ -18,13 +19,22 @@ app.use(
     credentials: true,
   }),
 );
+
+// Configure Helmet to allow images
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Or disable it completely for development
+    // crossOriginResourcePolicy: false,
+  }),
+);
+
 // Parsers
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet());
 app.use(morgan("dev"));
 
-// Static files for uploaded images
+// Static files for uploaded images - MOVE THIS BEFORE HELMET for better results
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Application Routes

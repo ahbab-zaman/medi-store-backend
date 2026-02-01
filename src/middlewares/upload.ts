@@ -13,10 +13,6 @@ const categoriesDir = path.join(uploadDir, "categories");
   }
 });
 
-/* -------------------------------------------------------------------------- */
-/*                    MULTER – medicines (direct save, easy to see)           */
-/* -------------------------------------------------------------------------- */
-
 const medicineStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, medicinesDir);
@@ -27,15 +23,11 @@ const medicineStorage = multer.diskStorage({
   },
 });
 
-/** Use this for medicine create/update – saves directly to uploads/medicines/ */
 export const uploadMedicine = multer({
   storage: medicineStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-/* -------------------------------------------------------------------------- */
-/*                    MULTER – categories (for existing flows)               */
-/* -------------------------------------------------------------------------- */
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
