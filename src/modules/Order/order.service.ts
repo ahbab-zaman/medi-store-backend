@@ -108,16 +108,83 @@ const createOrder = async (userId: string, payload: any) => {
 
   // 4. Send Email (Non-blocking)
   const emailHtml = `
-    <h1>Order Confirmation</h1>
-    <p>Dear ${user.name},</p>
-    <p>Thank you for your order!</p>
-    <p><strong>Order ID:</strong> ${result.id}</p>
-    <p><strong>Total Amount:</strong> $${totalAmount}</p>
-    <h3>Items:</h3>
-    <ul>
-        ${result.orderItems.map((item) => `<li>${item.medicine.name} x ${item.quantity} - $${item.price * item.quantity}</li>`).join("")}
-    </ul>
-    <p>We will notify you when your order is shipped.</p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #0d9488; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; }
+        .order-info { background-color: #f9fafb; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #eee; }
+        .order-info p { margin: 8px 0; color: #555; font-size: 15px; }
+        .order-info strong { color: #333; font-weight: 600; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 30px; }
+        th { text-align: left; padding: 15px; border-bottom: 2px solid #0d9488; color: #0d9488; font-size: 13px; text-transform: uppercase; font-weight: 700; }
+        td { padding: 15px; border-bottom: 1px solid #eee; color: #444; font-size: 15px; }
+        .total-section { text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+        .grand-total { font-size: 24px; font-weight: bold; color: #0d9488; margin-top: 10px; }
+        .footer { text-align: center; margin-top: 50px; color: #999; font-size: 13px; border-top: 1px solid #eee; padding-top: 30px; }
+        .highlight { color: #0d9488; font-weight: bold; }
+      </style>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div class="container">
+        <div class="header">
+          <h1>Medi Store</h1>
+        </div>
+        
+        <div class="order-info">
+          <p>Dear <strong>${user.name}</strong>,</p>
+          <p>Thank you for choosing Medi Store! Your order has been successfully placed.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+          <p><strong>Order ID:</strong> #${result.id.slice(0, 8)}</p>
+          <p><strong>Order Status:</strong> <span class="highlight">Pending</span></p>
+          <p><strong>Payment Method:</strong> ${paymentMethod}</p>
+        </div>
+
+        <h3>Order Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
+              <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${result.orderItems
+              .map(
+                (item) => `
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.medicine.name}</td>
+                <td style="padding: 12px; text-align: center; border-bottom: 1px solid #eee;">${item.quantity}</td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;">৳${item.price.toFixed(2)}</td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;">৳${(item.price * item.quantity).toFixed(2)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <p style="font-size: 16px; margin: 5px 0;">Subtotal: ৳${totalAmount.toFixed(2)}</p>
+          <p style="font-size: 16px; margin: 5px 0;">Shipping: ৳0.00</p>
+          <div class="grand-total">Total: ৳${totalAmount.toFixed(2)}</div>
+        </div>
+
+        <div class="footer">
+          <p>We'll notify you as soon as your order is on its way!</p>
+          <p style="margin-top: 20px;">
+            Need help? Contact us at <a href="mailto:support@medistore.com" style="color: #0d9488; text-decoration: none;">support@medistore.com</a>
+          </p>
+          <p>&copy; ${new Date().getFullYear()} Medi Store. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
   `;
 
   sendEmail(user.email, "Order Confirmation - Medi Store", emailHtml).catch(
@@ -208,6 +275,17 @@ const updateOrderStatus = async (
   if (!order) {
     throw new AppError(404, "Order not found");
   }
+
+  console.log("Update Order Debug:", {
+    orderId,
+    userId,
+    userRole: role,
+    targetStatus: status,
+    orderOwnerId: order.userId,
+    isAdmin: role === Role.ADMIN,
+    isSeller: role === Role.SELLER,
+    isOwner: order.userId === userId,
+  });
 
   if (role === Role.ADMIN) {
     // Admin can update anything - proceed
