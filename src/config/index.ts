@@ -13,4 +13,7 @@ export default {
     refresh_secret: process.env.JWT_REFRESH_SECRET,
     refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
   },
+  stripe_secret_key: process.env.STRIPE_SECRET_KEY,
+  emailUser: process.env.EMAIL_USER,
+  emailPass: process.env.EMAIL_PASS,
 };

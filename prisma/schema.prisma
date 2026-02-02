@@ -88,6 +88,8 @@ model Order {
   status          OrderStatus @default(PENDING)
   shippingAddress String
   paymentStatus   String      @default("PENDING")
+  paymentMethod   String      @default("COD") // COD or CARD
+  transactionId   String?
   
   orderItems      OrderItem[]
   

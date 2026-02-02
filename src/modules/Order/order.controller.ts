@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { OrderService } from "./order.service";
+import { Role } from "../../../generated/prisma/client";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -15,24 +16,44 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getSellerOrders = catchAsync(async (req: Request, res: Response) => {
-  const sellerId = req.user.id; // Assuming user is Seller
-  const result = await OrderService.getSellerOrders(sellerId);
+const getOrders = catchAsync(async (req: Request, res: Response) => {
+  const { role, id } = req.user;
+  let result;
+
+  if (role === Role.ADMIN) {
+    result = await OrderService.getAllOrders();
+  } else if (role === Role.SELLER) {
+    result = await OrderService.getSellerOrders(id);
+  } else {
+    result = await OrderService.getUserOrders(id);
+  }
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Seller orders retrieved successfully",
+    message: "Orders retrieved successfully",
+    data: result,
+  });
+});
+
+const getOrderById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await OrderService.getOrderById(id);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order details retrieved successfully",
     data: result,
   });
 });
 
 const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const sellerId = req.user.id;
+  const { id: userId, role } = req.user;
   const { status } = req.body;
 
-  const result = await OrderService.updateOrderStatus(id, sellerId, status);
+  const result = await OrderService.updateOrderStatus(id, userId, role, status);
 
   sendResponse(res, {
     statusCode: 200,
@@ -42,8 +63,24 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteOrder = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { id: userId, role } = req.user;
+
+  await OrderService.deleteOrder(id, userId, role);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order deleted successfully",
+    data: null,
+  });
+});
+
 export const OrderController = {
   createOrder,
-  getSellerOrders,
+  getOrders,
+  getOrderById,
   updateOrderStatus,
+  deleteOrder,
 };
