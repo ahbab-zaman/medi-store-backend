@@ -15,7 +15,16 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-  const result = await CategoryService.createCategory(req.body);
+  const imageUrl = req.file
+    ? `/uploads/categories/${req.file.filename}`
+    : undefined;
+
+  const payload = {
+    ...req.body,
+    image: imageUrl,
+  };
+
+  const result = await CategoryService.createCategory(payload);
 
   sendResponse(res, {
     statusCode: 201,
@@ -27,7 +36,17 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await CategoryService.updateCategory(id, req.body);
+
+  const imageUrl = req.file
+    ? `/uploads/categories/${req.file.filename}`
+    : undefined;
+
+  const payload = {
+    ...req.body,
+    ...(imageUrl ? { image: imageUrl } : {}),
+  };
+
+  const result = await CategoryService.updateCategory(id, payload);
 
   sendResponse(res, {
     statusCode: 200,

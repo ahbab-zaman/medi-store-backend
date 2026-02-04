@@ -111,8 +111,17 @@ const deleteOrder = async (id: string) => {
     throw new AppError(404, "Order not found");
   }
 
-  return prisma.order.delete({
-    where: { id },
+  // Deletion with transaction to handle cascade manually
+  return await prisma.$transaction(async (tx) => {
+    // 1. Delete associated OrderItems first
+    await tx.orderItem.deleteMany({
+      where: { orderId: id },
+    });
+
+    // 2. Delete the Order
+    return await tx.order.delete({
+      where: { id: id },
+    });
   });
 };
 

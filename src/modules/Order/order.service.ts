@@ -335,28 +335,41 @@ const deleteOrder = async (orderId: string, userId: string, role: string) => {
     where: { id: orderId },
     include: { orderItems: { include: { medicine: true } } },
   });
-  if (!order) throw new AppError(404, "Order not found");
 
+  if (!order) {
+    throw new AppError(404, "Order not found");
+  }
+
+  // Permission Checks
   if (role === Role.ADMIN) {
-    // details
+    // Admin can delete any order
   } else if (role === Role.SELLER) {
-    // Seller can only delete if all items are theirs? Or maybe not allowed to delete orders generally?
-    // User said "admin and seller ... can delete".
-    // I'll allow it if they own the items.
+    // Seller can delete if they own at least one item in the order
     const hasSellerItems = order.orderItems.some(
       (item) => item.medicine.sellerId === userId,
     );
     if (!hasSellerItems) {
-      throw new AppError(403, "You are not authorized to delete this order");
+      throw new AppError(
+        403,
+        "You are not authorized to delete this order as it contains no products from your store.",
+      );
     }
   } else {
-    throw new AppError(403, "Forbidden");
+    throw new AppError(403, "You do not have permission to delete orders.");
   }
 
-  // Transaction to restore stock? Usually not for delete, unless it was a mistake.
-  // If order confirmed, stock already reduced. If deleted, it's gone.
-  // Let's just delete.
-  return prisma.order.delete({ where: { id: orderId } });
+  // Deletion with transaction to handle cascade manually (as not set in schema)
+  return await prisma.$transaction(async (tx) => {
+    // 1. Delete associated OrderItems first
+    await tx.orderItem.deleteMany({
+      where: { orderId: orderId },
+    });
+
+    // 2. Delete the Order
+    return await tx.order.delete({
+      where: { id: orderId },
+    });
+  });
 };
 
 export const OrderService = {

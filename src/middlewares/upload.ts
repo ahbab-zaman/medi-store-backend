@@ -28,6 +28,20 @@ export const uploadMedicine = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
+const categoryStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, categoriesDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".jpg";
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+export const uploadCategory = multer({
+  storage: categoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {

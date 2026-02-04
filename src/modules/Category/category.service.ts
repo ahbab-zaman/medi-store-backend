@@ -4,15 +4,24 @@ import AppError from "../../errors/AppError";
 export interface CreateCategoryInput {
   name: string;
   description?: string;
+  image?: string;
 }
 
 export interface UpdateCategoryInput {
   name?: string;
   description?: string;
+  image?: string;
 }
 
 const getAllCategories = async () => {
   return prisma.category.findMany({
+    include: {
+      _count: {
+        select: {
+          medicines: true,
+        },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -32,6 +41,7 @@ const createCategory = async (payload: CreateCategoryInput) => {
     data: {
       name: payload.name,
       description: payload.description,
+      image: payload.image,
     },
   });
 };
@@ -50,6 +60,7 @@ const updateCategory = async (id: string, payload: UpdateCategoryInput) => {
     data: {
       name: payload.name ?? existing.name,
       description: payload.description ?? existing.description,
+      image: payload.image ?? existing.image,
     },
   });
 };
