@@ -149,10 +149,10 @@ const updateMedicine = async (
     throw new AppError(404, "Medicine not found");
   }
 
-  // Ensure seller can only modify their own medicines
-  if (medicine.sellerId !== seller.id) {
-    throw new AppError(403, "You are not allowed to modify this medicine");
-  }
+  // Allow sellers to modify any medicine as requested
+  // if (medicine.sellerId !== seller.id) {
+  //   throw new AppError(403, "You are not allowed to modify this medicine");
+  // }
 
   const { expiryDate, price, stock, ...rest } = payload;
 
@@ -188,9 +188,9 @@ const deleteMedicine = async (id: string, sellerEmail: string) => {
     throw new AppError(404, "Medicine not found");
   }
 
-  if (medicine.sellerId !== seller.id) {
-    throw new AppError(403, "You are not allowed to delete this medicine");
-  }
+  // if (medicine.sellerId !== seller.id) {
+  //   throw new AppError(403, "You are not allowed to delete this medicine");
+  // }
 
   await prisma.medicine.delete({
     where: { id },

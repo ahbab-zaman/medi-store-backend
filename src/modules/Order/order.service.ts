@@ -287,25 +287,8 @@ const updateOrderStatus = async (
     isOwner: order.userId === userId,
   });
 
-  if (role === Role.ADMIN) {
-    // Admin can update anything - proceed
-  } else if (role === Role.SELLER) {
-    // Check if Seller is acting as a BUYER (Order Owner)
-    if (order.userId === userId) {
-      // If they own the order, they should be able to Cancel it like a customer
-      if (status !== OrderStatus.CANCELLED) {
-        throw new AppError(403, "As a buyer, you can only cancel orders");
-      }
-      // Allow cancellation
-    } else {
-      // Acting as a Vendor - check if they have items in the order
-      const hasSellerItems = order.orderItems.some(
-        (item) => item.medicine.sellerId === userId,
-      );
-      if (!hasSellerItems) {
-        throw new AppError(403, "You are not authorized to update this order");
-      }
-    }
+  if (role === Role.ADMIN || role === Role.SELLER) {
+    // Admin and Seller can update anything - proceed
   } else if (role === Role.CUSTOMER) {
     if (order.userId !== userId) {
       throw new AppError(403, "You are not authorized to update this order");
@@ -341,19 +324,8 @@ const deleteOrder = async (orderId: string, userId: string, role: string) => {
   }
 
   // Permission Checks
-  if (role === Role.ADMIN) {
-    // Admin can delete any order
-  } else if (role === Role.SELLER) {
-    // Seller can delete if they own at least one item in the order
-    const hasSellerItems = order.orderItems.some(
-      (item) => item.medicine.sellerId === userId,
-    );
-    if (!hasSellerItems) {
-      throw new AppError(
-        403,
-        "You are not authorized to delete this order as it contains no products from your store.",
-      );
-    }
+  if (role === Role.ADMIN || role === Role.SELLER) {
+    // Admin and Seller can delete any order
   } else {
     throw new AppError(403, "You do not have permission to delete orders.");
   }

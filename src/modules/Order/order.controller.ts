@@ -23,7 +23,11 @@ const getOrders = catchAsync(async (req: Request, res: Response) => {
   if (role === Role.ADMIN) {
     result = await OrderService.getAllOrders();
   } else if (role === Role.SELLER) {
-    result = await OrderService.getSellerOrders(id);
+    if (req.query.sellerView === "true") {
+      result = await OrderService.getAllOrders();
+    } else {
+      result = await OrderService.getUserOrders(id);
+    }
   } else {
     result = await OrderService.getUserOrders(id);
   }
