@@ -1,6 +1,6 @@
 # 🏥 MediStore - Backend API
 
-![MediStore Banner](https://img.shields.io/badge/MediStore-API-blue?style=for-the-badge&logo=medistory)
+![MediStore Banner](https://medi-store-backend-ytk1.onrender.com)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
@@ -14,21 +14,25 @@ The backend engine powering **MediStore**, a comprehensive healthcare e-commerce
 ## 🌟 Key Modules
 
 ### 🔐 Authentication & Security
+
 - **JWT Authentication**: Secure access with Access and Refresh tokens.
 - **Role-Based Access Control (RBAC)**: Distinct permissions for `ADMIN`, `SELLER`, and `CUSTOMER`.
 - **User Management**: Ban/Unban system and profile orchestration.
 
 ### 📦 Inventory & Medicine
+
 - **Dynamic Catalog**: Categorized medicine listing with advanced filtering.
 - **Seller Controls**: Dedicated routes for sellers to manage their own products.
 - **Multer Integration**: High-performance image upload handling.
 
 ### 🛒 Order Processing
+
 - **Atomic Transactions**: Ensures data integrity during order placement and stock reduction via Prisma transactions.
 - **Multimodal Status**: Track orders through `PENDING`, `PAID`, `SHIPPED`, `DELIVERED`, and `CANCELLED`.
 - **Payment Hooks**: Integrated support for Stripe and Cash on Delivery (COD).
 
 ### 📧 Notifications
+
 - **Automated Emails**: Beautifully formatted HTML emails for order confirmations using Nodemailer.
 
 ---
@@ -57,35 +61,37 @@ src/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js (v18+)
 - PostgreSQL Instance
 
 ### Setup
+
 1. **Clone & Install**
+
    ```bash
    npm install
    ```
 
 2. **Environment Configuration**
    Create a `.env` file in the root directory:
+
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/medistore"
-   NODE_ENV="development"
-   PORT=5000
-   
-   JWT_ACCESS_SECRET="your_secret"
-   JWT_ACCESS_EXPIRES_IN="1d"
+   DATABASE_URL="your_postgreSQL database URL"
+   PORT=4000
+
+   JWT_ACCESS_SECRET="your_jwt_secret"
+   JWT_ACCESS_EXPIRES_IN="30d"
    JWT_REFRESH_SECRET="your_refresh_secret"
-   JWT_REFRESH_EXPIRES_IN="30d"
-   
-   STRIPE_SECRET_KEY="sk_test_..."
-   SMTP_HOST="smtp.gmail.com"
-   SMTP_PORT=587
-   SMTP_USER="your-email@gmail.com"
-   SMTP_PASS="your-app-password"
+   JWT_REFRESH_EXPIRES_IN="365d"
+
+   STRIPE_SECRET_KEY="your_stripe_secret_key"
+   EMAIL_USER="your-email@gmail.com"
+   EMAIL_PASS="your-app-password"
    ```
 
 3. **Database Migration**
+
    ```bash
    npx prisma generate
    npx prisma migrate dev
@@ -113,4 +119,5 @@ src/
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
+
 <p align="center">Crafted with ❤️ for the MediStore ecosystem.</p>
