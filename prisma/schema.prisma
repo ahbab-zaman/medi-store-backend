@@ -152,3 +152,49 @@ model CartItem {
   @@unique([cartId, medicineId])
   @@map("cart_items")
 }
+
+model Document {
+  id        String    @id @default(uuid())
+  title     String
+  content   String
+  source    String?
+  chunks    Chunk[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("documents")
+}
+
+model Chunk {
+  id         String                 @id @default(uuid())
+  documentId String
+  document   Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  embedding  Unsupported("vector(384)")
+  index      Int
+  createdAt  DateTime               @default(now())
+
+  @@index([documentId])
+  @@map("chunks")
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}

@@ -16,4 +16,6 @@ export default {
   stripe_secret_key: process.env.STRIPE_SECRET_KEY,
   emailUser: process.env.EMAIL_USER,
   emailPass: process.env.EMAIL_PASS,
+  openrouter_api_key: process.env.OPENROUTER_API_KEY,
+  hf_api_key: process.env.HF_API_KEY,
 };
