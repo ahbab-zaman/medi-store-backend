@@ -4,10 +4,33 @@ import AppError from "../../errors/AppError";
 import { randomUUID } from "crypto";
 
 const EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5";
-const CHAT_MODEL = "deepseek/deepseek-chat:free";
+const CHAT_MODEL = process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const HF_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${EMBEDDING_MODEL}`;
+
+const normalizeUrl = (url: string) => url.replace(/\/+$/, "");
+
+const buildHfEmbeddingUrl = () => {
+  const explicitUrl = process.env.HF_EMBEDDING_URL;
+  if (explicitUrl) return normalizeUrl(explicitUrl);
+
+  const configuredBase = normalizeUrl(
+    process.env.HF_EMBEDDING_BASE_URL ?? "https://api-inference.huggingface.co/models",
+  );
+
+  // Hugging Face Router expects the hf-inference prefix.
+  if (configuredBase.includes("router.huggingface.co")) {
+    const routerBase = configuredBase.endsWith("/hf-inference/models")
+      ? configuredBase
+      : `${configuredBase}/hf-inference/models`;
+    return `${routerBase}/${EMBEDDING_MODEL}`;
+  }
+
+  const baseWithModels = configuredBase.endsWith("/models")
+    ? configuredBase
+    : `${configuredBase}/models`;
+  return `${baseWithModels}/${EMBEDDING_MODEL}`;
+};
 
 const splitIntoChunks = (text: string, chunkSize = 800, overlap = 120) => {
   const clean = text.replace(/\s+/g, " ").trim();
@@ -46,8 +69,9 @@ export const RagService = {
     if (!hfApiKey) {
       throw new AppError(500, "HF_API_KEY is not configured");
     }
+    const hfUrl = buildHfEmbeddingUrl();
 
-    const response = await fetch(HF_URL, {
+    const response = await fetch(hfUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${hfApiKey}`,
@@ -61,16 +85,18 @@ export const RagService = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new AppError(502, `Embedding API error: ${errorText}`);
+      throw new AppError(
+        502,
+        `Embedding API error (${hfUrl}): ${errorText}. If you use Hugging Face Router, ensure your token has Inference Providers permissions.`,
+      );
     }
 
     const raw = await response.json();
-
-    if (!Array.isArray(raw)) {
-      throw new AppError(502, "Invalid embedding response format");
-    }
-
-    const vector = Array.isArray(raw[0]) ? raw[0] : raw;
+    const vector = Array.isArray(raw)
+      ? (Array.isArray(raw[0]) ? raw[0] : raw)
+      : Array.isArray((raw as { embedding?: unknown })?.embedding)
+        ? ((raw as { embedding: number[] }).embedding)
+        : null;
 
     if (!Array.isArray(vector) || vector.length !== 384) {
       throw new AppError(502, "Embedding dimension mismatch. Expected 384");
@@ -134,6 +160,9 @@ export const RagService = {
     if (!openRouterKey) {
       throw new AppError(500, "OPENROUTER_API_KEY is not configured");
     }
+    if (!CHAT_MODEL) {
+      throw new AppError(500, "OPENROUTER_MODEL is not configured");
+    }
 
     const intent = classifyIntent(payload.message);
     const contextChunks = await this.retrieveChunks(payload.message);
@@ -159,6 +188,16 @@ export const RagService = {
       payload.message,
     );
 
+    const recentMessages = await prisma.$queryRawUnsafe<Array<{ role: "user" | "assistant"; content: string }>>(
+      `SELECT "role", "content"
+       FROM "chat_messages"
+       WHERE "sessionId" = $1
+       ORDER BY "createdAt" DESC
+       LIMIT 10`,
+      sessionId,
+    );
+    const historyMessages = recentMessages.reverse();
+
     const systemPrompt = `You are MediStore assistant. Intent: ${intent}. Use provided context when relevant. If information is not present, say you do not know and ask a brief follow-up. Keep answers concise and safe for medical ecommerce. Context:\n${context || "No context found."}`;
 
     const upstream = await fetch(OPENROUTER_URL, {
@@ -170,10 +209,7 @@ export const RagService = {
       body: JSON.stringify({
         model: CHAT_MODEL,
         stream: true,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: payload.message },
-        ],
+        messages: [{ role: "system", content: systemPrompt }, ...historyMessages],
       }),
     });
 
@@ -193,23 +229,29 @@ export const RagService = {
     const decoder = new TextDecoder();
 
     let fullText = "";
+    let sseBuffer = "";
+    let lastToken = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
+      sseBuffer += decoder.decode(value, { stream: true });
+      const lines = sseBuffer.split("\n");
+      sseBuffer = lines.pop() ?? "";
 
       for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const data = line.slice(5).trim();
+        const normalized = line.trim();
+        if (!normalized.startsWith("data:")) continue;
+        const data = normalized.slice(5).trim();
         if (!data || data === "[DONE]") continue;
 
         try {
           const parsed = JSON.parse(data);
           const token = parsed?.choices?.[0]?.delta?.content;
           if (token) {
+            if (token === lastToken) continue;
+            lastToken = token;
             fullText += token;
             res.write(`data: ${JSON.stringify({ token })}\n\n`);
           }
