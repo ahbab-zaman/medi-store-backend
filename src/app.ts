@@ -5,7 +5,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import router from "./routes";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
-import path from "path";
+import { fileUploadMiddleware } from "./middlewares/upload";
 
 const app: Application = express();
 
@@ -33,9 +33,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
-
-// Static files for uploaded images - MOVE THIS BEFORE HELMET for better results
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(fileUploadMiddleware);
 
 // Application Routes
 app.use("/api", router);

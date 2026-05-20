@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
+import { UploadedFile } from "express-fileupload";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { MedicineService } from "./medicine.service";
+import {
+  deleteImageFromCloudinary,
+  uploadImageToCloudinary,
+} from "../../lib/cloudinary";
 
 const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getAllMedicines(req.query);
@@ -28,48 +33,81 @@ const getMedicineById = catchAsync(async (req: Request, res: Response) => {
 
 const createMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
+  const image = req.files?.image as UploadedFile | undefined;
+  let uploadedImage:
+    | {
+        secureUrl: string;
+        publicId: string;
+      }
+    | undefined;
 
-  // Multer saves directly to uploads/medicines/ – URL path for frontend
-  const imageUrl = req.file
-    ? `/uploads/medicines/${req.file.filename}`
-    : undefined;
+  if (image) {
+    uploadedImage = await uploadImageToCloudinary(image.data, "medicines");
+  }
 
   const payload = {
     ...req.body,
-    imageUrl,
+    imageUrl: uploadedImage?.secureUrl,
+    imagePublicId: uploadedImage?.publicId,
   };
 
-  const result = await MedicineService.createMedicine(sellerEmail, payload);
+  try {
+    const result = await MedicineService.createMedicine(sellerEmail, payload);
 
-  sendResponse(res, {
-    statusCode: 201,
-    success: true,
-    message: "Medicine created successfully",
-    data: result,
-  });
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: "Medicine created successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (uploadedImage?.publicId) {
+      await deleteImageFromCloudinary(uploadedImage.publicId);
+    }
+    throw error;
+  }
 });
 
 const updateMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
   const { id } = req.params;
+  const image = req.files?.image as UploadedFile | undefined;
+  let uploadedImage:
+    | {
+        secureUrl: string;
+        publicId: string;
+      }
+    | undefined;
 
-  const imageUrl = req.file
-    ? `/uploads/medicines/${req.file.filename}`
-    : undefined;
+  if (image) {
+    uploadedImage = await uploadImageToCloudinary(image.data, "medicines");
+  }
 
   const payload = {
     ...req.body,
-    ...(imageUrl ? { imageUrl } : {}),
+    ...(uploadedImage
+      ? {
+          imageUrl: uploadedImage.secureUrl,
+          imagePublicId: uploadedImage.publicId,
+        }
+      : {}),
   };
 
-  const result = await MedicineService.updateMedicine(id, sellerEmail, payload);
+  try {
+    const result = await MedicineService.updateMedicine(id, sellerEmail, payload);
 
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Medicine updated successfully",
-    data: result,
-  });
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Medicine updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (uploadedImage?.publicId) {
+      await deleteImageFromCloudinary(uploadedImage.publicId);
+    }
+    throw error;
+  }
 });
 
 const deleteMedicine = catchAsync(async (req: Request, res: Response) => {
@@ -98,6 +136,105 @@ const getAllMedicinesForAdmin = catchAsync(
   },
 );
 
+const createMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => {
+  const adminEmail = req.user.email;
+  const image = req.files?.image as UploadedFile | undefined;
+  let uploadedImage:
+    | {
+        secureUrl: string;
+        publicId: string;
+      }
+    | undefined;
+
+  if (image) {
+    uploadedImage = await uploadImageToCloudinary(image.data, "medicines");
+  }
+
+  const payload = {
+    ...req.body,
+    imageUrl: uploadedImage?.secureUrl,
+    imagePublicId: uploadedImage?.publicId,
+  };
+
+  try {
+    const result = await MedicineService.createMedicineAsAdmin(
+      adminEmail,
+      payload,
+    );
+
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: "Medicine created successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (uploadedImage?.publicId) {
+      await deleteImageFromCloudinary(uploadedImage.publicId);
+    }
+    throw error;
+  }
+});
+
+const updateMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => {
+  const adminEmail = req.user.email;
+  const { id } = req.params;
+  const image = req.files?.image as UploadedFile | undefined;
+  let uploadedImage:
+    | {
+        secureUrl: string;
+        publicId: string;
+      }
+    | undefined;
+
+  if (image) {
+    uploadedImage = await uploadImageToCloudinary(image.data, "medicines");
+  }
+
+  const payload = {
+    ...req.body,
+    ...(uploadedImage
+      ? {
+          imageUrl: uploadedImage.secureUrl,
+          imagePublicId: uploadedImage.publicId,
+        }
+      : {}),
+  };
+
+  try {
+    const result = await MedicineService.updateMedicineAsAdmin(
+      id,
+      adminEmail,
+      payload,
+    );
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Medicine updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (uploadedImage?.publicId) {
+      await deleteImageFromCloudinary(uploadedImage.publicId);
+    }
+    throw error;
+  }
+});
+
+const deleteMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => {
+  const adminEmail = req.user.email;
+  const { id } = req.params;
+  const result = await MedicineService.deleteMedicineAsAdmin(id, adminEmail);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Medicine deleted successfully",
+    data: result,
+  });
+});
+
 export const MedicineController = {
   getAllMedicines,
   getMedicineById,
@@ -105,5 +242,7 @@ export const MedicineController = {
   updateMedicine,
   deleteMedicine,
   getAllMedicinesForAdmin,
+  createMedicineAsAdmin,
+  updateMedicineAsAdmin,
+  deleteMedicineAsAdmin,
 };
-

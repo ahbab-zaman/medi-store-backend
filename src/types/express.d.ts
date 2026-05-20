@@ -1,10 +1,10 @@
-import { Multer } from "multer";
+import { FileArray, UploadedFile } from "express-fileupload";
 
 declare global {
   namespace Express {
     interface Request {
-      file?: Multer.File;
-      files?: Multer.File[];
+      file?: UploadedFile;
+      files?: FileArray;
     }
   }
 }

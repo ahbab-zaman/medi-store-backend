@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
+import { deleteImageFromCloudinary } from "../../lib/cloudinary";
 
 export interface CreateMedicineInput {
   name: string;
@@ -10,6 +11,7 @@ export interface CreateMedicineInput {
   expiryDate?: string;
   categoryId: string;
   imageUrl?: string;
+  imagePublicId?: string;
 }
 
 export interface UpdateMedicineInput {
@@ -21,6 +23,7 @@ export interface UpdateMedicineInput {
   expiryDate?: string;
   categoryId?: string;
   imageUrl?: string;
+  imagePublicId?: string;
 }
 
 export interface MedicineQuery {
@@ -155,8 +158,9 @@ const updateMedicine = async (
   // }
 
   const { expiryDate, price, stock, ...rest } = payload;
+  const oldImagePublicId = medicine.imagePublicId;
 
-  return prisma.medicine.update({
+  const updated = await prisma.medicine.update({
     where: { id },
     data: {
       ...rest,
@@ -169,6 +173,12 @@ const updateMedicine = async (
       expiryDate: expiryDate ? new Date(expiryDate) : medicine.expiryDate,
     },
   });
+
+  if (payload.imagePublicId && oldImagePublicId) {
+    await deleteImageFromCloudinary(oldImagePublicId);
+  }
+
+  return updated;
 };
 
 const deleteMedicine = async (id: string, sellerEmail: string) => {
@@ -188,9 +198,36 @@ const deleteMedicine = async (id: string, sellerEmail: string) => {
     throw new AppError(404, "Medicine not found");
   }
 
+  const [orderItemCount, reviewCount] = await Promise.all([
+    prisma.orderItem.count({
+      where: { medicineId: id },
+    }),
+    prisma.review.count({
+      where: { medicineId: id },
+    }),
+  ]);
+
+  // Keep order history intact: medicines used in orders cannot be hard-deleted.
+  if (orderItemCount > 0) {
+    throw new AppError(
+      400,
+      "This medicine cannot be deleted because it exists in customer orders. Set stock to 0 instead.",
+    );
+  }
+
   // if (medicine.sellerId !== seller.id) {
   //   throw new AppError(403, "You are not allowed to delete this medicine");
   // }
+
+  if (reviewCount > 0) {
+    await prisma.review.deleteMany({
+      where: { medicineId: id },
+    });
+  }
+
+  if (medicine.imagePublicId) {
+    await deleteImageFromCloudinary(medicine.imagePublicId);
+  }
 
   await prisma.medicine.delete({
     where: { id },
@@ -220,6 +257,49 @@ const getAllMedicinesForAdmin = async () => {
   });
 };
 
+const createMedicineAsAdmin = async (
+  adminEmail: string,
+  payload: CreateMedicineInput,
+) => {
+  const admin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (!admin) {
+    throw new AppError(404, "Admin not found");
+  }
+
+  return createMedicine(adminEmail, payload);
+};
+
+const updateMedicineAsAdmin = async (
+  id: string,
+  adminEmail: string,
+  payload: UpdateMedicineInput,
+) => {
+  const admin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (!admin) {
+    throw new AppError(404, "Admin not found");
+  }
+
+  return updateMedicine(id, adminEmail, payload);
+};
+
+const deleteMedicineAsAdmin = async (id: string, adminEmail: string) => {
+  const admin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (!admin) {
+    throw new AppError(404, "Admin not found");
+  }
+
+  return deleteMedicine(id, adminEmail);
+};
+
 export const MedicineService = {
   getAllMedicines,
   getMedicineById,
@@ -227,4 +307,7 @@ export const MedicineService = {
   updateMedicine,
   deleteMedicine,
   getAllMedicinesForAdmin,
+  createMedicineAsAdmin,
+  updateMedicineAsAdmin,
+  deleteMedicineAsAdmin,
 };

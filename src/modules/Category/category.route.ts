@@ -1,7 +1,7 @@
 import express from "express";
 import { CategoryController } from "./category.controller";
 import auth from "../../middlewares/auth";
-import { upload, uploadCategory } from "../../middlewares/upload";
+import { uploadCategoryImage } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -12,13 +12,13 @@ router.get("/", CategoryController.getAllCategories);
 router.post(
   "/",
   auth("ADMIN"),
-  uploadCategory.single("image"),
+  uploadCategoryImage,
   CategoryController.createCategory,
 );
 router.put(
   "/:id",
   auth("ADMIN"),
-  uploadCategory.single("image"),
+  uploadCategoryImage,
   CategoryController.updateCategory,
 );
 router.delete("/:id", auth("ADMIN"), CategoryController.deleteCategory);

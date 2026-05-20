@@ -48,6 +48,7 @@ model Category {
   name      String     @unique
   description String?
   image       String?
+  imagePublicId String?
   medicines Medicine[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -64,6 +65,7 @@ model Medicine {
   manufacturer String
   expiryDate   DateTime?
   imageUrl     String?
+  imagePublicId String?
   
   categoryId   String
   category     Category    @relation(fields: [categoryId], references: [id])

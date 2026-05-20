@@ -1,56 +1,41 @@
-import multer from "multer";
-import path from "path";
-import fs from "fs";
+import fileUpload, { UploadedFile } from "express-fileupload";
+import { RequestHandler } from "express";
+import AppError from "../errors/AppError";
 
-const uploadDir = path.join(process.cwd(), "uploads");
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
 
-// Ensure upload directories exist
-const medicinesDir = path.join(uploadDir, "medicines");
-const categoriesDir = path.join(uploadDir, "categories");
-[uploadDir, medicinesDir, categoriesDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+export const fileUploadMiddleware = fileUpload({
+  useTempFiles: false,
+  limits: { fileSize: MAX_IMAGE_SIZE },
+  abortOnLimit: true,
+  createParentPath: false,
+  parseNested: true,
+  safeFileNames: true,
+  preserveExtension: true,
+});
+
+const validateImageFile = (file?: UploadedFile | UploadedFile[]) => {
+  if (!file) return;
+  if (Array.isArray(file)) {
+    throw new AppError(400, "Only one image file is allowed");
   }
-});
 
-const medicineStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, medicinesDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
-  },
-});
+  if (!file.mimetype?.startsWith("image/")) {
+    throw new AppError(400, "Invalid file type. Only image uploads are allowed");
+  }
 
-export const uploadMedicine = multer({
-  storage: medicineStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+  if (file.size <= 0) {
+    throw new AppError(400, "Uploaded image is empty");
+  }
+};
 
-const categoryStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, categoriesDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
-  },
-});
+const singleImageField = (fieldName: string): RequestHandler => {
+  return (req, _res, next) => {
+    validateImageFile(req.files?.[fieldName]);
+    next();
+  };
+};
 
-export const uploadCategory = multer({
-  storage: categoryStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+export const uploadMedicineImage = singleImageField("image");
+export const uploadCategoryImage = singleImageField("image");
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
-  },
-});
-
-export const upload = multer({ storage });
