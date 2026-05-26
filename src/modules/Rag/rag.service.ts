@@ -2,11 +2,17 @@ import { Response } from "express";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
 import { randomUUID } from "crypto";
+import { createHash } from "crypto";
+import { getRedisClient } from "../../lib/redis";
 
 const EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5";
 const CHAT_MODEL = process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const CACHE_PREFIX = process.env.RAG_CACHE_KEY_PREFIX ?? "rag";
+const CACHE_TTL_SECONDS = Number(process.env.REDIS_CACHE_TTL_SECONDS ?? "1800");
+const KNOWLEDGE_VERSION_KEY = `${CACHE_PREFIX}:knowledge_version`;
+const RETRIEVE_KEY_PREFIX = `${CACHE_PREFIX}:retrieve`;
 
 const normalizeUrl = (url: string) => url.replace(/\/+$/, "");
 
@@ -51,6 +57,40 @@ const splitIntoChunks = (text: string, chunkSize = 800, overlap = 120) => {
 };
 
 const toVectorLiteral = (values: number[]) => `[${values.join(",")}]`;
+const normalizeQuery = (query: string) => query.trim().toLowerCase().replace(/\s+/g, " ");
+const hashQuery = (query: string) => createHash("sha256").update(query).digest("hex");
+
+type RetrievedChunk = { content: string; title: string; source: string | null; similarity: number };
+type RetrievalCachePayload = {
+  embedding: number[];
+  chunks: RetrievedChunk[];
+};
+
+const getKnowledgeVersion = async () => {
+  const redis = await getRedisClient();
+  if (!redis) return "1";
+
+  try {
+    const existing = await redis.get(KNOWLEDGE_VERSION_KEY);
+    if (existing) return existing;
+    await redis.set(KNOWLEDGE_VERSION_KEY, "1");
+    return "1";
+  } catch (error) {
+    console.error("[rag-cache] getKnowledgeVersion failed", error);
+    return "1";
+  }
+};
+
+const incrementKnowledgeVersion = async () => {
+  const redis = await getRedisClient();
+  if (!redis) return;
+
+  try {
+    await redis.incr(KNOWLEDGE_VERSION_KEY);
+  } catch (error) {
+    console.error("[rag-cache] incrementKnowledgeVersion failed", error);
+  }
+};
 
 const classifyIntent = (message: string) => {
   const text = message.toLowerCase();
@@ -62,6 +102,33 @@ const classifyIntent = (message: string) => {
   }
   return "product";
 };
+
+const buildClinicalSystemPrompt = (intent: string, context: string) => `You are MediStore Clinical Assistant, a careful doctor-level medical information assistant for an ecommerce pharmacy.
+
+Primary objective:
+- Give precise, evidence-aligned, practical answers using the provided context first.
+- Do not invent facts, dosages, contraindications, prices, stock, or policies.
+
+Reasoning and response rules:
+- Prioritize retrieved context when relevant. If context conflicts, state the conflict briefly.
+- If context is missing for a critical detail, say exactly what is missing and ask one targeted follow-up question.
+- Keep medical guidance specific and actionable: include who/when/why where useful.
+- Use clear clinical language but keep it understandable to non-clinicians.
+- For medicine questions, include: indication, common side effects, major cautions/interactions, and when to seek urgent care if relevant.
+- Never provide dangerous instructions, illegal drug guidance, or definitive diagnosis without exam/testing.
+- If symptoms suggest emergency risk (e.g., chest pain, breathing difficulty, stroke signs, severe allergy, suicidal thoughts), instruct immediate emergency care.
+
+Output style:
+- Start with a direct answer in 1-2 sentences.
+- Then provide short bullets only when needed for key details.
+- Be concise, avoid filler, and avoid repeating the question.
+
+Business scope:
+- Intent: ${intent}
+- You can answer medical, product, and order/support queries for MediStore.
+
+Retrieved context:
+${context || "No context found."}`;
 
 export const RagService = {
   async getEmbedding(text: string): Promise<number[]> {
@@ -136,13 +203,35 @@ export const RagService = {
       );
     }
 
+    await incrementKnowledgeVersion();
+
     return { documentId, chunkCount: chunks.length };
   },
 
   async retrieveChunks(query: string, limit = 5) {
+    const startTime = Date.now();
+    const normalizedQuery = normalizeQuery(query);
+    const queryHash = hashQuery(normalizedQuery);
+    const knowledgeVersion = await getKnowledgeVersion();
+    const cacheKey = `${RETRIEVE_KEY_PREFIX}:${queryHash}:v${knowledgeVersion}`;
+
+    const redis = await getRedisClient();
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as RetrievalCachePayload;
+          console.log(`[rag-cache] hit key=${cacheKey} latencyMs=${Date.now() - startTime}`);
+          return parsed.chunks;
+        }
+      } catch (error) {
+        console.error("[rag-cache] read failed", error);
+      }
+    }
+
     const embedding = await this.getEmbedding(query);
 
-    const rows = await prisma.$queryRawUnsafe<Array<{ content: string; title: string; source: string | null; similarity: number }>>(
+    const rows = await prisma.$queryRawUnsafe<RetrievedChunk[]>(
       `SELECT c."content", d."title", d."source", 1 - (c."embedding" <=> $1::vector) AS similarity
        FROM "chunks" c
        JOIN "documents" d ON d."id" = c."documentId"
@@ -151,6 +240,17 @@ export const RagService = {
       toVectorLiteral(embedding),
       limit,
     );
+
+    if (redis) {
+      const payload: RetrievalCachePayload = { embedding, chunks: rows };
+      try {
+        await redis.set(cacheKey, JSON.stringify(payload), { EX: CACHE_TTL_SECONDS });
+      } catch (error) {
+        console.error("[rag-cache] write failed", error);
+      }
+    }
+
+    console.log(`[rag-cache] miss key=${cacheKey} latencyMs=${Date.now() - startTime}`);
 
     return rows;
   },
@@ -198,7 +298,7 @@ export const RagService = {
     );
     const historyMessages = recentMessages.reverse();
 
-    const systemPrompt = `You are MediStore assistant. Intent: ${intent}. Use provided context when relevant. If information is not present, say you do not know and ask a brief follow-up. Keep answers concise and safe for medical ecommerce. Context:\n${context || "No context found."}`;
+    const systemPrompt = buildClinicalSystemPrompt(intent, context);
 
     const upstream = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -209,6 +309,8 @@ export const RagService = {
       body: JSON.stringify({
         model: CHAT_MODEL,
         stream: true,
+        temperature: 0.2,
+        top_p: 0.9,
         messages: [{ role: "system", content: systemPrompt }, ...historyMessages],
       }),
     });

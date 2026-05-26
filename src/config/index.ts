@@ -18,6 +18,12 @@ export default {
   emailPass: process.env.EMAIL_PASS,
   openrouter_api_key: process.env.OPENROUTER_API_KEY,
   hf_api_key: process.env.HF_API_KEY,
+  redis: {
+    url: process.env.REDIS_URL,
+    cache_ttl_seconds: process.env.REDIS_CACHE_TTL_SECONDS,
+    cache_key_prefix: process.env.RAG_CACHE_KEY_PREFIX,
+    connect_timeout_ms: process.env.REDIS_CONNECT_TIMEOUT_MS,
+  },
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
