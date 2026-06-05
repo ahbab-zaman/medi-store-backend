@@ -4,3 +4,8 @@ export type TUpdateProfile = {
   contactNumber?: string;
   address?: string;
 };
+
+export type TChangePassword = {
+  currentPassword: string;
+  newPassword: string;
+};

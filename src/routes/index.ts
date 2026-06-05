@@ -8,6 +8,8 @@ import { CartRoutes } from "../modules/Cart/cart.route";
 import { UserRoutes } from "../modules/User/user.route";
 import { ReviewRoutes } from "../modules/Review/review.route";
 import { RagRoutes } from "../modules/Rag/rag.route";
+import { AddressRoutes } from "../modules/Address/address.route";
+import { WishlistRoutes } from "../modules/Wishlist/wishlist.route";
 
 const router = express.Router();
 
@@ -48,9 +50,16 @@ const moduleRoutes = [
     path: "/rag",
     route: RagRoutes,
   },
+  {
+    path: "/addresses",
+    route: AddressRoutes,
+  },
+  {
+    path: "/wishlist",
+    route: WishlistRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 
 export default router;
-

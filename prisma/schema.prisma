@@ -35,12 +35,37 @@ model User {
   reviews       Review[]
   medicines     Medicine[] 
   cart          Cart?
+  addresses     Address[]
+  wishlist      WishlistItem[]
   
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   refreshToken  String?
 
   @@map("users")
+}
+
+model Address {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  firstname         String
+  lastname          String
+  address_1         String
+  address_2         String
+  road              String
+  area              String
+  landmark          String?
+  latitude          String?
+  longitude         String?
+  mobileCountryCode String   @default("971")
+  mobile            String
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("addresses")
 }
 
 model Category {
@@ -76,6 +101,7 @@ model Medicine {
   reviews      Review[]
   orderItems   OrderItem[]
   cartItems    CartItem[]
+  wishlistItems WishlistItem[]
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -202,3 +228,16 @@ model ChatMessage {
   @@index([sessionId, createdAt])
   @@map("chat_messages")
 }
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, medicineId])
+  @@map("wishlist_items")
+}
+

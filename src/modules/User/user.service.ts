@@ -1,6 +1,8 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
-import { TUpdateProfile } from "./user.interface";
+import { TUpdateProfile, TChangePassword } from "./user.interface";
+import bcrypt from "bcryptjs";
+import config from "../../config/index";
 
 const updateMyProfile = async (userEmail: string, payload: TUpdateProfile) => {
   const user = await prisma.user.findUnique({
@@ -37,6 +39,41 @@ const updateMyProfile = async (userEmail: string, payload: TUpdateProfile) => {
   return result;
 };
 
+const changePassword = async (
+  userEmail: string,
+  payload: TChangePassword,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+  });
+
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(
+    payload.currentPassword,
+    user.password,
+  );
+
+  if (!isCurrentPasswordValid) {
+    throw new AppError(403, "Current password is incorrect");
+  }
+
+  const hashedNewPassword = await bcrypt.hash(
+    payload.newPassword,
+    Number(config.bcrypt_salt_rounds),
+  );
+
+  await prisma.user.update({
+    where: { email: userEmail },
+    data: { password: hashedNewPassword },
+  });
+
+  return { message: "Password changed successfully" };
+};
+
 export const UserService = {
   updateMyProfile,
+  changePassword,
 };
