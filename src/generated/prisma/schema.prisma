@@ -22,25 +22,25 @@ enum OrderStatus {
 }
 
 model User {
-  id            String     @id @default(uuid())
+  id            String  @id @default(uuid())
   name          String
-  email         String     @unique
+  email         String  @unique
   password      String
-  role          Role       @default(CUSTOMER)
+  role          Role    @default(CUSTOMER)
   contactNumber String?
   address       String?
-  isBanned      Boolean    @default(false)
-  
-  orders        Order[]
-  reviews       Review[]
-  medicines     Medicine[] 
-  cart          Cart?
-  addresses     Address[]
-  wishlist      WishlistItem[]
-  
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  refreshToken  String?
+  isBanned      Boolean @default(false)
+
+  orders    Order[]
+  reviews   Review[]
+  medicines Medicine[]
+  cart      Cart?
+  addresses Address[]
+  wishlist  WishlistItem[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  refreshToken String?
 
   @@map("users")
 }
@@ -69,43 +69,43 @@ model Address {
 }
 
 model Category {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  description String?
-  image       String?
+  id            String     @id @default(uuid())
+  name          String     @unique
+  description   String?
+  image         String?
   imagePublicId String?
-  medicines Medicine[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  medicines     Medicine[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@map("categories")
 }
 
 model Medicine {
-  id           String      @id @default(uuid())
-  name         String
-  description  String
-  price        Float
-  stock        Int
-  manufacturer String
-  expiryDate   DateTime?
-  imageUrl     String?
+  id            String    @id @default(uuid())
+  name          String
+  description   String
+  price         Float
+  stock         Int
+  manufacturer  String
+  expiryDate    DateTime?
+  imageUrl      String?
   imagePublicId String?
-  
-  categoryId   String
-  category     Category    @relation(fields: [categoryId], references: [id])
-  
-  sellerId     String
-  seller       User        @relation(fields: [sellerId], references: [id])
-  
-  reviews      Review[]
-  orderItems   OrderItem[]
-  cartItems    CartItem[]
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+
+  reviews       Review[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
   wishlistItems WishlistItem[]
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("medicines")
 }
 
@@ -119,12 +119,12 @@ model Order {
   paymentStatus   String      @default("PENDING")
   paymentMethod   String      @default("COD") // COD or CARD
   transactionId   String?
-  
-  orderItems      OrderItem[]
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("orders")
 }
 
@@ -136,7 +136,7 @@ model OrderItem {
   medicine   Medicine @relation(fields: [medicineId], references: [id])
   quantity   Int
   price      Float
-  
+
   @@map("order_items")
 }
 
@@ -149,10 +149,10 @@ model Review {
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id])
   status     String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("reviews")
 }
 
@@ -163,7 +163,7 @@ model Cart {
   items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  
+
   @@map("carts")
 }
 
@@ -176,31 +176,31 @@ model CartItem {
   quantity   Int
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  
+
   @@unique([cartId, medicineId])
   @@map("cart_items")
 }
 
 model Document {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   title     String
   content   String
   source    String?
   chunks    Chunk[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("documents")
 }
 
 model Chunk {
-  id         String                 @id @default(uuid())
+  id         String                     @id @default(uuid())
   documentId String
-  document   Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document   Document                   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   content    String
   embedding  Unsupported("vector(384)")
   index      Int
-  createdAt  DateTime               @default(now())
+  createdAt  DateTime                   @default(now())
 
   @@index([documentId])
   @@map("chunks")
@@ -240,4 +240,3 @@ model WishlistItem {
   @@unique([userId, medicineId])
   @@map("wishlist_items")
 }
-
