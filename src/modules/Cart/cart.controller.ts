@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { CartService } from "./cart.service";
+import { requireParam } from "../../utils/requireParam";
 
 const getCart = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -41,7 +42,7 @@ const updateCartItem = catchAsync(async (req: Request, res: Response) => {
 
 const removeFromCart = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  const { medicineId } = req.params;
+  const medicineId = requireParam(req.params.medicineId, "medicineId");
   const result = await CartService.removeFromCart(userId, medicineId);
 
   sendResponse(res, {

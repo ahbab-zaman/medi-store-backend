@@ -50,7 +50,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken, accessToken } = result;
 
   res.cookie("refreshToken", refreshToken, {
-    secure: false, // Set to true in production with HTTPS
+    secure: process.env.NODE_ENV === "production",
     httpOnly: true,
   });
 
@@ -72,7 +72,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   // If we rotated the refresh token, update the cookie transparently.
   if (newRefreshToken) {
     res.cookie("refreshToken", newRefreshToken, {
-      secure: false, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     });
   }

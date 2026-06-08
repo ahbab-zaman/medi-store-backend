@@ -3,6 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AddressService } from "./address.service";
 import { AddressValidations } from "./address.validation";
+import { requireParam } from "../../utils/requireParam";
 
 const createAddress = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -36,7 +37,7 @@ const getMyAddresses = catchAsync(async (req: Request, res: Response) => {
 
 const getAddressById = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await AddressService.getAddressById(userId, id);
 
   sendResponse(res, {
@@ -49,7 +50,7 @@ const getAddressById = catchAsync(async (req: Request, res: Response) => {
 
 const updateAddress = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
 
   // Validate request body
   const validated = AddressValidations.updateAddressValidationSchema.parse({
@@ -68,7 +69,7 @@ const updateAddress = catchAsync(async (req: Request, res: Response) => {
 
 const deleteAddress = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   await AddressService.deleteAddress(userId, id);
 
   sendResponse(res, {

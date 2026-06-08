@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { ReviewService } from "./review.service";
+import { requireParam } from "../../utils/requireParam";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -21,7 +22,7 @@ const createReview = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMedicineReviews = catchAsync(async (req: Request, res: Response) => {
-  const { medicineId } = req.params;
+  const medicineId = requireParam(req.params.medicineId, "medicineId");
   const result = await ReviewService.getMedicineReviews(medicineId);
 
   sendResponse(res, {
@@ -46,7 +47,7 @@ const getAllReviewsForAdmin = catchAsync(
 );
 
 const updateReviewStatus = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const { status } = req.body;
   const result = await ReviewService.updateReviewStatus(id, status);
 
@@ -59,7 +60,7 @@ const updateReviewStatus = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteReview = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await ReviewService.deleteReview(id);
 
   sendResponse(res, {

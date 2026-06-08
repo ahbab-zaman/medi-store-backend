@@ -249,7 +249,7 @@ const getSellerOrders = async (sellerId: string) => {
   return orders;
 };
 
-const getOrderById = async (orderId: string) => {
+const getOrderById = async (orderId: string, requesterId: string, requesterRole: string) => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
@@ -258,6 +258,12 @@ const getOrderById = async (orderId: string) => {
     },
   });
   if (!order) throw new AppError(404, "Order not found");
+
+  // IDOR guard: only the owning customer, an ADMIN, or a SELLER may view order details
+  if (requesterRole !== Role.ADMIN && requesterRole !== Role.SELLER && order.userId !== requesterId) {
+    throw new AppError(403, "You are not authorised to view this order");
+  }
+
   return order;
 };
 

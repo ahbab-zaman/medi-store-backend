@@ -3,6 +3,7 @@ import { UploadedFile } from "express-fileupload";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { CategoryService } from "./category.service";
+import { requireParam } from "../../utils/requireParam";
 import {
   deleteImageFromCloudinary,
   uploadImageToCloudinary,
@@ -56,7 +57,7 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const image = req.files?.image as UploadedFile | undefined;
   let uploadedImage:
     | {
@@ -94,7 +95,7 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await CategoryService.deleteCategory(id);
 
   sendResponse(res, {

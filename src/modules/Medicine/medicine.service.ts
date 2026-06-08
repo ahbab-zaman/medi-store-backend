@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
 import { deleteImageFromCloudinary } from "../../lib/cloudinary";
+import { Role } from "../../../generated/prisma/client";
 
 export interface CreateMedicineInput {
   name: string;
@@ -152,10 +153,9 @@ const updateMedicine = async (
     throw new AppError(404, "Medicine not found");
   }
 
-  // Allow sellers to modify any medicine as requested
-  // if (medicine.sellerId !== seller.id) {
-  //   throw new AppError(403, "You are not allowed to modify this medicine");
-  // }
+  if (seller.role !== Role.ADMIN && medicine.sellerId !== seller.id) {
+    throw new AppError(403, "You are not allowed to modify this medicine");
+  }
 
   const { expiryDate, price, stock, ...rest } = payload;
   const oldImagePublicId = medicine.imagePublicId;
@@ -215,9 +215,9 @@ const deleteMedicine = async (id: string, sellerEmail: string) => {
     );
   }
 
-  // if (medicine.sellerId !== seller.id) {
-  //   throw new AppError(403, "You are not allowed to delete this medicine");
-  // }
+  if (seller.role !== Role.ADMIN && medicine.sellerId !== seller.id) {
+    throw new AppError(403, "You are not allowed to delete this medicine");
+  }
 
   if (reviewCount > 0) {
     await prisma.review.deleteMany({

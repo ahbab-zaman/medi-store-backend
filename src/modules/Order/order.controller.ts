@@ -3,6 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { OrderService } from "./order.service";
 import { Role } from "../../../generated/prisma/client";
+import { requireParam } from "../../utils/requireParam";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -41,8 +42,9 @@ const getOrders = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getOrderById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await OrderService.getOrderById(id);
+  const id = requireParam(req.params.id, "id");
+  const { id: userId, role } = req.user;
+  const result = await OrderService.getOrderById(id, userId, role);
 
   sendResponse(res, {
     statusCode: 200,
@@ -53,7 +55,7 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const { id: userId, role } = req.user;
   const { status } = req.body;
 
@@ -68,7 +70,7 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteOrder = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const { id: userId, role } = req.user;
 
   await OrderService.deleteOrder(id, userId, role);

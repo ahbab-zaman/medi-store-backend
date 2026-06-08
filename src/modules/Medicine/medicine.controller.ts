@@ -7,6 +7,7 @@ import {
   deleteImageFromCloudinary,
   uploadImageToCloudinary,
 } from "../../lib/cloudinary";
+import { requireParam } from "../../utils/requireParam";
 
 const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getAllMedicines(req.query);
@@ -20,7 +21,7 @@ const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMedicineById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await MedicineService.getMedicineById(id);
 
   sendResponse(res, {
@@ -70,7 +71,7 @@ const createMedicine = catchAsync(async (req: Request, res: Response) => {
 
 const updateMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const image = req.files?.image as UploadedFile | undefined;
   let uploadedImage:
     | {
@@ -112,7 +113,7 @@ const updateMedicine = catchAsync(async (req: Request, res: Response) => {
 
 const deleteMedicine = catchAsync(async (req: Request, res: Response) => {
   const sellerEmail = req.user.email;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await MedicineService.deleteMedicine(id, sellerEmail);
 
   sendResponse(res, {
@@ -178,7 +179,7 @@ const createMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => 
 
 const updateMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => {
   const adminEmail = req.user.email;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const image = req.files?.image as UploadedFile | undefined;
   let uploadedImage:
     | {
@@ -224,7 +225,7 @@ const updateMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => 
 
 const deleteMedicineAsAdmin = catchAsync(async (req: Request, res: Response) => {
   const adminEmail = req.user.email;
-  const { id } = req.params;
+  const id = requireParam(req.params.id, "id");
   const result = await MedicineService.deleteMedicineAsAdmin(id, adminEmail);
 
   sendResponse(res, {

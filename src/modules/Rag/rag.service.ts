@@ -181,16 +181,17 @@ export const RagService = {
     }
 
     const documentId = randomUUID();
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "documents" ("id", "title", "content", "source", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())`,
-      documentId,
-      title,
-      content,
-      source ?? null,
-    );
+    await prisma.document.create({
+      data: {
+        id: documentId,
+        title,
+        content,
+        source: source ?? null,
+      },
+    });
 
     for (let i = 0; i < chunks.length; i += 1) {
-      const chunk = chunks[i];
+      const chunk = chunks[i]!;
       const embedding = await this.getEmbedding(chunk);
 
       await prisma.$executeRawUnsafe(
@@ -275,28 +276,28 @@ export const RagService = {
       .join("\n\n");
 
     const sessionId = payload.sessionId ?? randomUUID();
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "chat_sessions" ("id", "createdAt", "updatedAt") VALUES ($1, NOW(), NOW()) ON CONFLICT ("id") DO UPDATE SET "updatedAt" = NOW()`,
-      sessionId,
-    );
+    await prisma.chatSession.upsert({
+      where: { id: sessionId },
+      create: { id: sessionId },
+      update: { updatedAt: new Date() },
+    });
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "chat_messages" ("id", "sessionId", "role", "content", "createdAt") VALUES ($1, $2, $3, $4, NOW())`,
-      randomUUID(),
-      sessionId,
-      "user",
-      payload.message,
-    );
+    await prisma.chatMessage.create({
+      data: {
+        id: randomUUID(),
+        sessionId,
+        role: "user",
+        content: payload.message,
+      },
+    });
 
-    const recentMessages = await prisma.$queryRawUnsafe<Array<{ role: "user" | "assistant"; content: string }>>(
-      `SELECT "role", "content"
-       FROM "chat_messages"
-       WHERE "sessionId" = $1
-       ORDER BY "createdAt" DESC
-       LIMIT 10`,
-      sessionId,
-    );
-    const historyMessages = recentMessages.reverse();
+    const recentMessages = await prisma.chatMessage.findMany({
+      where: { sessionId },
+      select: { role: true, content: true },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+    const historyMessages = recentMessages.reverse() as Array<{ role: "user" | "assistant"; content: string }>;
 
     const systemPrompt = buildClinicalSystemPrompt(intent, context);
 
@@ -363,13 +364,14 @@ export const RagService = {
       }
     }
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "chat_messages" ("id", "sessionId", "role", "content", "createdAt") VALUES ($1, $2, $3, $4, NOW())`,
-      randomUUID(),
-      sessionId,
-      "assistant",
-      fullText,
-    );
+    await prisma.chatMessage.create({
+      data: {
+        id: randomUUID(),
+        sessionId,
+        role: "assistant",
+        content: fullText,
+      },
+    });
 
     res.write("event: done\ndata: {}\n\n");
     res.end();
