@@ -4,7 +4,7 @@ import config from "../../config/index";
 import AppError from "../../errors/AppError";
 import { TLoginUser } from "./auth.interface";
 import { createToken, verifyToken } from "./auth.utils";
-import { User } from "../../../generated/prisma/client";
+import { User } from "../../../generated/prisma";
 
 const registerUser = async (payload: User) => {
   const existingUser = await prisma.user.findUnique({

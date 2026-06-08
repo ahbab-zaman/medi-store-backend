@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
-import { OrderStatus, Role } from "../../../generated/prisma/client";
+import { OrderStatus, Role } from "../../../generated/prisma";
 import config from "../../config";
 import Stripe from "stripe";
 import { sendEmail } from "../../utils/emailSender";
