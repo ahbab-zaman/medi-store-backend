@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errors/AppError";
 import { deleteImageFromCloudinary } from "../../lib/cloudinary";
-import { Role } from "../../generated/prisma";
+import { Role } from "@prisma/client";
 
 export interface CreateMedicineInput {
   name: string;

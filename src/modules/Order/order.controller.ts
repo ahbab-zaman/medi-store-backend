@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { OrderService } from "./order.service";
-import { Role } from "../../generated/prisma";
+import { Role } from "@prisma/client";
 import { requireParam } from "../../utils/requireParam";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
