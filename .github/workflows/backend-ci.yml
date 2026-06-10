@@ -24,6 +24,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Determine backend directory
+        id: find-backend
+        run: |
+          if [ -f "${GITHUB_WORKSPACE}/package.json" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "${GITHUB_WORKSPACE}/medi-store-backend/package.json" ]; then
+            echo "dir=medi-store-backend" >> $GITHUB_OUTPUT
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -33,11 +44,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
 
       - name: Run TypeScript compiler check
         run: npm run build
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
 
@@ -49,15 +60,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Determine backend directory
+        id: find-backend
+        run: |
+          if [ -f "${GITHUB_WORKSPACE}/package.json" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "${GITHUB_WORKSPACE}/medi-store-backend/package.json" ]; then
+            echo "dir=medi-store-backend" >> $GITHUB_OUTPUT
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+          fi
+
       - name: Run npm audit
         run: npm audit --audit-level=moderate
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
         continue-on-error: true
 
       - name: Run Snyk scan (optional - requires setup)
         uses: snyk/actions/node@master
         with:
-          args: --severity-threshold=high --file=medi-store-backend/package.json
+          args: --severity-threshold=high --file=${{ steps.find-backend.outputs.dir }}/package.json
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -71,6 +93,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Determine backend directory
+        id: find-backend
+        run: |
+          if [ -f "${GITHUB_WORKSPACE}/package.json" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "${GITHUB_WORKSPACE}/medi-store-backend/package.json" ]; then
+            echo "dir=medi-store-backend" >> $GITHUB_OUTPUT
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,11 +113,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
 
       - name: Build project
         run: npm run build
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
 
@@ -92,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-build
-          path: medi-store-backend/dist/
+          path: ${{ steps.find-backend.outputs.dir }}/dist/
           retention-days: 5
 
   test:
@@ -119,6 +152,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Determine backend directory
+        id: find-backend
+        run: |
+          if [ -f "${GITHUB_WORKSPACE}/package.json" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "${GITHUB_WORKSPACE}/medi-store-backend/package.json" ]; then
+            echo "dir=medi-store-backend" >> $GITHUB_OUTPUT
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -128,11 +172,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
 
       - name: Run tests
         run: npm test
-        working-directory: medi-store-backend
+        working-directory: ${{ steps.find-backend.outputs.dir }}
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
         continue-on-error: true
@@ -148,6 +192,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Determine backend directory
+        id: find-backend
+        run: |
+          if [ -f "${GITHUB_WORKSPACE}/package.json" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "${GITHUB_WORKSPACE}/medi-store-backend/package.json" ]; then
+            echo "dir=medi-store-backend" >> $GITHUB_OUTPUT
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -173,8 +228,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./medi-store-backend
-          file: ./medi-store-backend/Dockerfile
+          context: ${{ steps.find-backend.outputs.dir }}
+          file: ${{ steps.find-backend.outputs.dir }}/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
