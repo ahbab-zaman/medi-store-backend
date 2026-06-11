@@ -60,6 +60,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
     message: "User logged in successfully",
     data: {
       accessToken,
+      user: result.user,
     },
   });
 });

@@ -85,9 +85,13 @@ const loginUser = async (payload: TLoginUser) => {
     },
   });
 
+  const { password, refreshToken: storedRefreshToken, ...userWithoutPassword } =
+    userData;
+
   return {
     accessToken,
     refreshToken,
+    user: userWithoutPassword,
   };
 };
 
