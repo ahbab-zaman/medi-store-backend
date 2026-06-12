@@ -104,6 +104,43 @@ const logout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const email = req.body?.email;
+
+  if (!email || typeof email !== "string") {
+    throw new AppError(400, "Email is required");
+  }
+
+  await AuthService.forgotPassword(email);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "If that email exists, a reset link has been sent.",
+    data: null,
+  });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const { token, password } = req.body;
+
+  if (!token || typeof token !== "string") {
+    throw new AppError(400, "Reset token is required");
+  }
+  if (!password || typeof password !== "string") {
+    throw new AppError(400, "Password is required");
+  }
+
+  await AuthService.resetPassword(token, password);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Password has been reset successfully",
+    data: null,
+  });
+});
+
 const getMe = catchAsync(async (req: Request, res: Response) => {
   // Fetch full user profile from DB using id or email from decoded token
   const { id, email } = req.user as { id?: string; email?: string };
@@ -120,6 +157,8 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 export const AuthController = {
   register,
   login,
+  forgotPassword,
+  resetPassword,
   refreshToken,
   logout,
   getMe,
