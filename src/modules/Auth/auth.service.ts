@@ -87,8 +87,11 @@ const loginUser = async (payload: TLoginUser) => {
     },
   });
 
-  const { password, refreshToken: storedRefreshToken, ...userWithoutPassword } =
-    userData;
+  const {
+    password,
+    refreshToken: storedRefreshToken,
+    ...userWithoutPassword
+  } = userData;
 
   return {
     accessToken,
@@ -187,18 +190,8 @@ const forgotPassword = async (email: string) => {
     </div>
   `;
 
-  const sendResult = await sendEmail(
-    email,
-    "MediStore Password Reset",
-    html,
-  );
-
-  if (!sendResult) {
-    throw new AppError(
-      500,
-      "Unable to send password reset email. Please try again later.",
-    );
-  }
+  // REPLACE WITH THIS ✅
+  await sendEmail(email, "MediStore Password Reset", html);
 };
 
 const resetPassword = async (token: string, password: string) => {
@@ -207,16 +200,25 @@ const resetPassword = async (token: string, password: string) => {
     .update(token)
     .digest("hex");
 
+  // REPLACE WITH THIS ✅
   const user = await prisma.user.findFirst({
-    where: {
-      resetPasswordToken: resetTokenHash,
-      resetPasswordTokenExpiresAt: {
-        gt: new Date(),
-      },
-    },
+    where: { resetPasswordToken: resetTokenHash },
   });
 
-  if (!user) {
+  if (
+    !user ||
+    !user.resetPasswordTokenExpiresAt ||
+    user.resetPasswordTokenExpiresAt < new Date()
+  ) {
+    if (user) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: null,
+          resetPasswordTokenExpiresAt: null,
+        },
+      });
+    }
     throw new AppError(400, "Reset token is invalid or has expired.");
   }
 
